@@ -1,0 +1,92 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildJob
+    steps:
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: 'DemoApp/DemoApp.csproj'
+        arguments: '--output $(Build.ArtifactStagingDirectory)'
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: 'BingSeleniumDemo/BingSeleniumDemo.csproj'
+        arguments: '--output $(Build.ArtifactStagingDirectory)/selenium'
+        zipAfterPublish: false
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: 'DemoApp.Test/DemoApp.Test.csproj'
+        arguments: '--output $(Build.ArtifactStagingDirectory)/selenium'
+        zipAfterPublish: false
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'publish'
+        publishLocation: 'Container'
+
+- stage: Deploy
+  jobs:
+  - job: DeployJob
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'publish'
+        downloadPath: '$(System.ArtifactsDirectory)'
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Internal Subscription(9cf7d4cd-b6be-49e2-b222-c2bf9079000b)'
+        appType: 'webApp'
+        WebAppName: 'kgseleniumdemo'
+        packageForLinux: '$(System.ArtifactsDirectory)/**/*.zip'
+
+- stage: UI_Tests
+  jobs:
+  - job: SeleniumJob
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'publish'
+        downloadPath: '$(System.ArtifactsDirectory)'
+    - task: VisualStudioTestPlatformInstaller@1
+      inputs:
+        packageFeedSelector: 'nugetOrg'
+        versionSelector: 'latestPreRelease'
+    - task: VSTest@2
+      inputs:
+        testSelector: 'testAssemblies'
+        testAssemblyVer2: '**\BingSeleniumDemo.dll'
+        searchFolder: '$(System.ArtifactsDirectory)/publish/selenium'
+        uiTests: true
+    - task: VSTest@2
+      inputs:
+        testSelector: 'testAssemblies'
+        testAssemblyVer2: '**\DemoApp.Test.dll'
+        searchFolder: '$(System.ArtifactsDirectory)/publish/selenium'
+        uiTests: true
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Agent.TempDirectory)\TestResults'
+        ArtifactName: 'tests'
+        publishLocation: 'Container'
+

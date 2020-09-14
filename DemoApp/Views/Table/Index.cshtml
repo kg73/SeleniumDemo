@@ -1,0 +1,51 @@
+﻿@{
+    ViewData["Title"] = "Table Example";
+}
+<h1>@ViewData["Title"]</h1>
+
+<form enctype="multipart/form-data" asp-controller="Table" asp-action="Index">
+    <select id="numRecordsDropdown" class="browser-default custom-select" name="numRecords">
+        <option selected>Max # of Records</option>
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="100">100</option>
+    </select>
+
+    <select id="classDropdown" class="browser-default custom-select" name="selectedClass">
+        <option selected>Class</option>
+        <option value="1">English</option>
+        <option value="2">Math</option>
+        <option value="3">Music</option>
+        <option value="4">Science</option>
+    </select>
+
+    <button type="submit" id="tableSubmitButton" class="btn btn-primary">Submit</button>
+</form>
+
+
+
+<table class="table">
+    <thead class="thead-light">
+        <tr>
+            <th id="idCol" scope="col">Id</th>
+            <th id="nameCol" scope="col">Name</th>
+            <th id="ageCol" scope="col">Age</th>
+            <th id="classCol" scope="col">Class</th>
+            <th id="gradeCol" scope="col">Grade</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        @foreach (var record in ViewBag.StudentRecordList)
+        {
+            <tr>
+                <td>@record.Id</td>
+                <td>@record.Name</td>
+                <td>@record.Age</td>
+                <td>@record.StudentClass</td>
+                <td>@record.Grade</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
